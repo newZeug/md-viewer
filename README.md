@@ -15,34 +15,30 @@ The viewer can render LaTeX expressions using both KaTeX and MathJax:
    - Example: $$\sum_{i=1}^n i = \frac{n(n+1)}{2}$$
 
 3. **Flalign Environment**: For aligned equations with left alignment
-   ```latex
-   \begin{flalign*}
+
+\begin{flalign*}
    y &= mx + b \\
    y &= 2x + 1
-   \end{flalign*}
-   ```
+\end{flalign*}
 
 4. **TikZ Diagrams**: For creating mathematical diagrams and visualizations
-   ```latex
-   \begin{tikzpicture}
+
+\begin{tikzpicture}
    \draw[thick,->] (-2,0) -- (2,0) node[right]{$x$};
    \draw[thick,->] (0,-2) -- (0,2) node[above]{$y$};
    \draw[blue] (0,0) circle (1);
-   \end{tikzpicture}
-   ```
+\end{tikzpicture}
 
 5. **Tables using Tabular**: For complex table layouts
-   ```latex
-   \begin{tabular}{|c|c|}
+
+\begin{tabular}{|c|c|}
    1 & 2 \\
    3 & 4
-   \end{tabular}
-   ```
+\end{tabular}
 
 6. **Tile Rows**: For creating tile-based layouts
-   ```latex
-   \tilerow{1,2,3,,}
-   ```
+
+\tilerow{1,2,3,,}
 
 ### Code Block Features
 

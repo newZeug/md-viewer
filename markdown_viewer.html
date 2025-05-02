@@ -2649,6 +2649,70 @@
                 font-size: 7pt !important;
             }
         }
+
+        /* Text marking menu styles */
+        .text-selection-menu {
+            position: absolute;
+            background: var(--primary-bg-color);
+            border-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 1200;
+            padding: 4px;
+        }
+
+        .text-selection-menu.visible {
+            display: flex;
+            gap: 4px;
+        }
+
+        .text-selection-menu button {
+            font-family: 'Material Symbols Rounded';
+            border: none;
+            background: none;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .text-selection-menu button.mark {
+            display: none;
+        }
+
+        .text-selection-menu.highlightable button.mark {
+            display: block;
+        }
+
+        .text-selection-menu button:hover {
+            background: var(--highlight-bg);
+            color: var(--highlight-color);
+        }
+
+        .text-selection-menu button.remove {
+            color: var(--red-color);
+        }
+
+        .text-selection-menu button.remove:hover {
+            background: var(--red-bg);
+        }
+
+        .text-selection-menu.highlightable button.remove {
+            display: none;
+        }
+
+        html.dark-mode .text-selection-menu {
+            background: var(--secondary-bg-color);
+        }
+
+        html.dark-mode mark.highlight {
+            background-color: #1673bb;
+            color: #fff;
+        }
     </style>
 </head>
 
@@ -2858,6 +2922,9 @@
     </div>
 
     <script>
+        let selectionTimeout;
+        let lastSurroundedRange = null;
+
         const DOM = {
             fileInput: document.getElementById('fileInput'),
             browseButton: document.getElementById('browseButton'),
@@ -2877,7 +2944,7 @@
             providers: {
                 google: {
                     name: "Google Gemini",
-                    models: [" gemini-2.0-pro-exp-02-05", "gemini-2.0-flash", "gemma-3-27b-it"],
+                    models: ["gemini-2.5-pro-exp-03-25", "gemini-2.0-pro-exp-02-05", "gemini-2.0-flash", "gemma-3-27b-it"],
                     apiLink: "https://aistudio.google.com/app/apikey"
                 },
                 openai: {
@@ -3316,10 +3383,30 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 const chatContainer = document.getElementById('chatContainer');
                 const selection = window.getSelection();
                 const markdownContent = document.getElementById('markdownContent');
+                
+                // Hide text selection menu if no text is selected
+                if (!selection.toString().trim()) {
+                    const textSelectionMenu = document.querySelector('.text-selection-menu');
+                    if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
+                }
 
                 if (selection.toString().trim() && markdownContent.contains(selection.anchorNode)) {
-                    currentSelection = selection.toString();
-                    updateChatContext(currentSelection);
+                    clearTimeout(selectionTimeout);
+                    selectionTimeout = setTimeout(() => {
+                        const selection = window.getSelection();
+                        if (selection.toString().trim() && !selection.isCollapsed) {
+                            const range = selection.getRangeAt(0);
+                            const rect = range.getBoundingClientRect();
+                            
+                            let textSelectionMenu = getSelectionMenu(false);
+                            textSelectionMenu.style.top = `${window.scrollY + rect.bottom + 10}px`;
+                            textSelectionMenu.style.left = `${window.scrollX + rect.left}px`;
+                            textSelectionMenu.classList.add('visible');
+                        } else {
+                            const textSelectionMenu = document.querySelector('.text-selection-menu');
+                            if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
+                        }
+                    }, 300);
                 }
             });
 
@@ -3357,6 +3444,105 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 DOM.dropzone.addEventListener('dragleave', handleDragLeave);
                 DOM.dropzone.addEventListener('drop', handleDrop);
             }
+        }
+
+        function getSelectionMenu(isHighlighted) {
+            let textSelectionMenu = document.querySelector('.text-selection-menu');
+            if (!textSelectionMenu) {
+            textSelectionMenu = document.createElement('div');
+            textSelectionMenu.className = 'text-selection-menu no-print';
+            
+            const markButton = document.createElement('button');
+            markButton.innerHTML = 'format_color_text';
+            markButton.title = 'Highlight text';
+            markButton.className = 'mark';
+            markButton.onclick = () => surroundText();
+            
+            const deleteButton = document.createElement('button');
+            deleteButton.innerHTML = 'format_clear';
+            deleteButton.title = 'Remove highlight';
+            deleteButton.className = 'remove';
+            
+            const chatButton = document.createElement('button');
+            chatButton.innerHTML = 'chat';
+            chatButton.title = 'Ask about this text';
+            chatButton.onclick = () => {
+                updateChatContext(window.getSelection().toString());
+                showChat();
+                textSelectionMenu.classList.remove('visible');
+            };
+            
+            textSelectionMenu.appendChild(markButton);
+            textSelectionMenu.appendChild(deleteButton);
+            textSelectionMenu.appendChild(chatButton);
+            document.body.appendChild(textSelectionMenu);
+            }
+            if (isHighlighted) {
+            textSelectionMenu.classList.remove("highlightable");
+            } else {
+            textSelectionMenu.classList.add("highlightable");
+            }
+            return textSelectionMenu;
+        }
+
+        function surroundText() {
+            const selection = window.getSelection();
+            if (selection.toString().trim()) {
+                const range = selection.getRangeAt(0);
+                
+                if (lastSurroundedRange && 
+                    rangesAreEqual(lastSurroundedRange, range)) {
+                    console.log('This text is already highlighted');
+                    return;
+                }
+                
+                const mark = document.createElement('mark');
+                mark.className = 'highlight';
+                mark.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    showTextSelectionMenu(e);
+                });
+                
+                try {
+                    range.surroundContents(mark);
+                    lastSurroundedRange = range.cloneRange();
+                    
+                    // Hide selection menu after highlighting
+                    const textSelectionMenu = document.querySelector('.text-selection-menu');
+                    if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
+                } catch (e) {
+                    console.error("Error highlighting text:", e);
+                }
+            }
+            selection.removeAllRanges();
+        }
+
+        function showTextSelectionMenu(event) {
+            let textSelectionMenu = getSelectionMenu(true);
+            
+            const deleteButton = textSelectionMenu.querySelector('.remove');
+            deleteButton.onclick = function() {
+                const mark = event.target;
+                const parent = mark.parentNode;
+                while (mark.firstChild) {
+                    parent.insertBefore(mark.firstChild, mark);
+                }
+                parent.removeChild(mark);
+                textSelectionMenu.classList.remove('visible');
+            };
+            
+            // Position the menu near the highlighted text
+            const rect = event.target.getBoundingClientRect();
+            textSelectionMenu.style.top = `${window.scrollY + rect.bottom + 10}px`;
+            textSelectionMenu.style.left = `${window.scrollX + rect.left}px`;
+            textSelectionMenu.classList.add('visible');
+        }
+
+        function rangesAreEqual(range1, range2) {
+            return range1.startContainer === range2.startContainer &&
+                range1.startOffset === range2.startOffset &&
+                range1.endContainer === range2.endContainer &&
+                range1.endOffset === range2.endOffset;
         }
 
         // Consolidated drag and drop handlers
@@ -4321,6 +4507,10 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             return fileHeaderContainer;
         }
 
+        function highlightText() {
+
+        }
+
         function startRenaming(event) {
             event.stopPropagation();
             const tocFileNameText = event.target;
@@ -4972,6 +5162,12 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             window.print();
         }
 
+        function showChat() {
+            const popup = document.getElementById('chatContainer');
+            if (popup.classList.contains('collapsed')) showChatHelpPopup();
+            popup.classList.remove('collapsed');
+        }
+
         function toggleChat() {
             const popup = document.getElementById('chatContainer');
             if (popup.classList.contains('collapsed')) showChatHelpPopup();
@@ -5460,6 +5656,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                         throw new Error('The API endpoint was not found. Please check the URL.');
                     }
                     else if (response.status === 429) {
+                        console.log(`Status text: ${response.text()}`);
                         throw new Error('You have reached the API quota limit. Please try again later.');
                     }
                     return response.json();
