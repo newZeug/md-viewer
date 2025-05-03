@@ -83,7 +83,6 @@
         h1 {
             font-size: 2rem;
             font-weight: 600;
-            margin-bottom: 2rem;
             color: var(--highlight-color);
         }
 
@@ -134,15 +133,42 @@
             width: calc(100% - 315px);
         }
 
-        /* Markdown content styles */
-        #markdownContent h1,
-        #markdownContent h2,
-        #markdownContent h3 {
+        #markdownContent .header {
             margin-top: 1.5em;
             margin-bottom: 0.5em;
             max-width: 100%;
             text-overflow: ellipsis;
             overflow: hidden;
+            display:flex;
+            align-items: center;
+        }
+
+        #markdownContent .header .header-linker {
+            font-family: 'Material Symbols Rounded';
+            display: flex; 
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            opacity: 0;
+            font-size: 1.1em;
+            transition: 0.2s;
+            visibility: hidden;
+            width: 0;
+            border-radius: 4px;
+            height: fit-content;
+        }
+        
+        #markdownContent .header .header-linker.active,
+        #markdownContent .header:hover .header-linker {
+            visibility: visible;
+            opacity: 1;
+            transition: 0.2s;
+            margin-right: 6px;
+            width: 24px;
+        }
+
+        #markdownContent .header .header-linker:hover {
+            background: var(--chat-bg-color);
         }
 
         #markdownContent p {
@@ -3544,9 +3570,11 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 chatButton.className = 'chat-btn'
                 chatButton.title = 'Ask about this text';
                 chatButton.onclick = () => {
-                    updateChatContext(window.getSelection().toString());
+                    const selection = window.getSelection();
+                    updateChatContext(selection.toString());
                     showChat();
                     textSelectionMenu.classList.remove('visible');
+                    selection.removeAllRanges();
                 };
                 wrapper.append(chatButton);
                 
@@ -4139,11 +4167,40 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 }
             };
 
+            const headerExtension = {
+                name: 'headerWithLinker',
+                level: 'block',
+                start(src) {
+                    return src.match(/^#{1,6}\s/)?.index;
+                },
+                tokenizer(src) {
+                    const match = /^(#{1,6})\s+(.*)(?:\n|$)/.exec(src);
+                    if (match) {
+                        const [raw, hashes, content] = match;
+                        return {
+                            type: 'headerWithLinker',
+                            raw,
+                            depth: hashes.length,
+                            text: content.trim()
+                        };
+                    }
+                    return false;
+                },
+                renderer(token) {
+                    return `<div class="header">
+                        <a class="header-linker no-print" onclick="copyLink(this, 'h${token.depth}')">link</a>
+                        <h${token.depth}>
+                            ${token.text}
+                        </h${token.depth}>
+                    </div>`;
+                }
+            };
+
             marked.use({
                 extensions: [
                     skipMathExtension, codeBlockExtension, imageExtension, symbolsExtension,
                     emojiExtension, highlightExtension, footnoteExtension, footnoteRefExtension,
-                    subscriptExtension, superscriptExtension
+                    subscriptExtension, superscriptExtension, headerExtension
                 ],
             });
 
@@ -4162,6 +4219,25 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             }
 
             return html
+        }
+
+        function copyLink(linkHeader, tagName) {
+            const currentLink = window.location.href.split('#')[0];
+            const headerId = linkHeader.closest('.header').querySelector(tagName).id;
+            navigator.clipboard.writeText(currentLink + '#' + headerId);
+            
+            // Save original content
+            const originalContent = linkHeader.textContent;
+            
+            linkHeader.classList.add('active');
+            linkHeader.textContent = "check";
+            linkHeader.style.color = "#00c853";
+            
+            setTimeout(() => {
+                linkHeader.textContent = originalContent;
+                linkHeader.style.removeProperty('color');
+                linkHeader.classList.remove('active');
+        }, 1500);
         }
 
         async function loadFromSource() {
