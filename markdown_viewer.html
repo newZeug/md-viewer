@@ -158,13 +158,17 @@
             height: fit-content;
         }
         
-        #markdownContent .header .header-linker.active,
+        #markdownContent .header .header-linker.copied,
         #markdownContent .header:hover .header-linker {
             visibility: visible;
             opacity: 1;
             transition: 0.2s;
             margin-right: 6px;
             width: 24px;
+        }
+
+        #markdownContent .header .header-linker.copied {
+            color: #00c853;
         }
 
         #markdownContent .header .header-linker:hover {
@@ -4222,22 +4226,10 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         }
 
         function copyLink(linkHeader, tagName) {
-            const currentLink = window.location.href.split('#')[0];
+            const partialLink = window.location.href.split('#')[0];
             const headerId = linkHeader.closest('.header').querySelector(tagName).id;
-            navigator.clipboard.writeText(currentLink + '#' + headerId);
-            
-            // Save original content
-            const originalContent = linkHeader.textContent;
-            
-            linkHeader.classList.add('active');
-            linkHeader.textContent = "check";
-            linkHeader.style.color = "#00c853";
-            
-            setTimeout(() => {
-                linkHeader.textContent = originalContent;
-                linkHeader.style.removeProperty('color');
-                linkHeader.classList.remove('active');
-        }, 1500);
+            const link = partialLink + '#' + headerId
+            copyText(link, linkHeader);            
         }
 
         async function loadFromSource() {
@@ -5093,18 +5085,17 @@ This tool allows you to view Markdown files directly in your browser. Here's how
 
             const code = tempElement.textContent;
 
-            if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(code).then(() => {
-                    showCopySuccess(button);
-                }).catch(() => {
-                    fallbackCopy(code, button);
-                });
-            } else {
-                fallbackCopy(code, button);
-            }
+            copyText(code, button);
         }
 
-        function fallbackCopy(text, button) {
+        function copyText(text, button) {
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showCopySuccess(button);
+                    return;
+                });
+            }
+
             const textArea = document.createElement('textarea');
             textArea.value = text;
 
@@ -5152,19 +5143,20 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         }
 
         function showCopySuccess(button) {
+            const textContent = button.textContent;
             button.textContent = 'done';
             button.classList.add('copied');
             setTimeout(() => {
-                button.textContent = 'content_copy';
+                button.textContent = textContent;
                 button.classList.remove('copied');
-            }, 2000);
+            }, 1500);
         }
 
         function showCopyError(button) {
             button.textContent = 'error';
             setTimeout(() => {
                 button.textContent = 'content_copy';
-            }, 2000);
+            }, 1500);
         }
 
         function getExpandedFileNameContentHeight() {
