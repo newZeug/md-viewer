@@ -139,13 +139,13 @@
             max-width: 100%;
             text-overflow: ellipsis;
             overflow: hidden;
-            display:flex;
+            display: flex;
             align-items: center;
         }
 
         #markdownContent .header .header-linker {
             font-family: 'Material Symbols Rounded';
-            display: flex; 
+            display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
@@ -157,14 +157,18 @@
             border-radius: 4px;
             height: fit-content;
         }
-        
+
         #markdownContent .header .header-linker.copied,
         #markdownContent .header:hover .header-linker {
             visibility: visible;
             opacity: 1;
-            transition: 0.2s;
+            transition: 0.3s;
             margin-right: 6px;
             width: 24px;
+        }
+
+        #markdownContent .header:hover .header-linker {
+        transition-delay: 200ms;
         }
 
         #markdownContent .header .header-linker.copied {
@@ -232,6 +236,8 @@
         }
 
         #markdownContent blockquote:hover {
+            transition-delay: 200ms; 
+            transition: .2s;
             background: var(--secondary-bg-color);
         }
 
@@ -1839,8 +1845,8 @@
         }
 
         .image-scroll-container {
-            width:fit-content;
-            height:fit-content;
+            width: fit-content;
+            height: fit-content;
             overflow: auto;
             min-height: 25vh;
             display: flex;
@@ -1887,8 +1893,8 @@
         .image-popup .popup-close-button:hover {
             background: rgba(0, 0, 0, 0.7);
         }
-        
-        
+
+
         /* Text marking menu styles */
         .text-selection-menu {
             position: absolute;
@@ -3468,7 +3474,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 const chatContainer = document.getElementById('chatContainer');
                 const selection = window.getSelection();
                 const markdownContent = document.getElementById('markdownContent');
-                
+
                 // Hide text selection menu if no text is selected
                 if (!selection.toString().trim()) {
                     const textSelectionMenu = document.querySelector('.text-selection-menu');
@@ -3482,7 +3488,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                         if (selection.toString().trim() && !selection.isCollapsed) {
                             const range = selection.getRangeAt(0);
                             const rect = range.getBoundingClientRect();
-                            
+
                             let textSelectionMenu = getSelectionMenu();
                             textSelectionMenu.style.top = `${window.scrollY + rect.bottom + 10}px`;
                             textSelectionMenu.style.left = `${window.scrollX + rect.left}px`;
@@ -3536,37 +3542,37 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             if (!textSelectionMenu) {
                 textSelectionMenu = document.createElement('div');
                 textSelectionMenu.className = 'text-selection-menu no-print';
-                
+
                 // Bold button
                 const boldButton = document.createElement('button');
                 boldButton.innerHTML = 'format_bold';
                 boldButton.title = 'Make text bold';
                 boldButton.onclick = () => formatText('bold');
-                
+
                 // Italic button
                 const italicButton = document.createElement('button');
                 italicButton.innerHTML = 'format_italic';
                 italicButton.title = 'Make text italic';
                 italicButton.onclick = () => formatText('italic');
-                
+
                 // Underline button
                 const underlineButton = document.createElement('button');
                 underlineButton.innerHTML = 'format_underlined';
                 underlineButton.title = 'Underline text';
                 underlineButton.onclick = () => formatText('underline');
-                
+
                 // Code button
                 const codeButton = document.createElement('button');
                 codeButton.innerHTML = 'code';
                 codeButton.title = 'Format as code';
                 codeButton.onclick = () => formatText('code');
-                
+
                 // Original highlight button
                 const markButton = document.createElement('button');
                 markButton.innerHTML = 'format_color_text';
                 markButton.title = 'Highlight text';
                 markButton.onclick = () => formatText('highlight');
-                
+
                 const wrapper = document.createElement('div');
                 wrapper.className = 'additional'
                 const chatButton = document.createElement('button');
@@ -3581,7 +3587,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                     selection.removeAllRanges();
                 };
                 wrapper.append(chatButton);
-                
+
                 textSelectionMenu.append(boldButton, italicButton, underlineButton, codeButton, markButton, wrapper);
                 document.body.appendChild(textSelectionMenu);
             }
@@ -3603,7 +3609,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             const selection = window.getSelection();
 
             let className;
-            switch(format) {
+            switch (format) {
                 case 'bold': className = 'text-bold'; break;
                 case 'italic': className = 'text-italic'; break;
                 case 'underline': className = 'text-underline'; break;
@@ -3616,11 +3622,11 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             } catch (e) {
                 console.error(`Error formatting text as ${format}:`, e);
             }
-            
+
             // Hide selection menu
             const textSelectionMenu = document.querySelector('.text-selection-menu');
             if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
-            
+
             selection.removeAllRanges();
         }
 
@@ -3677,7 +3683,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 trust: true
             });
         }
-        
+
         function renderTikzIn(element) {
             const tikzCode = element.textContent.trim();
 
@@ -3687,10 +3693,10 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             iframe.style.border = 'none';
             iframe.title = 'TikZ diagram';
             iframe.sandbox = 'allow-scripts allow-same-origin';
-            
+
             element.innerHTML = '';
             element.appendChild(iframe);
-            
+
             const iframeContent = `
             <!DOCTYPE html>
             <html>
@@ -3721,18 +3727,18 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             </body>
             </html>
             `;
-            
+
             iframe.srcdoc = iframeContent;
-            
+
             element.setAttribute('data-processed', 'true');
         }
 
         function processDynamicTikz() {
             document.querySelectorAll(".tikz:not([data-processed='true'])").forEach(element => {
-            if (!element.id) {
-                element.id = 'tikz-' + Math.random().toString(36).substring(2);
-            }
-            renderTikzIn(element);
+                if (!element.id) {
+                    element.id = 'tikz-' + Math.random().toString(36).substring(2);
+                }
+                renderTikzIn(element);
             });
         }
 
@@ -3956,17 +3962,17 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                     const match = rule.exec(src);
                     if (match) {
                         const [raw, alt, src, attributes] = match;
-                        
+
                         // Parse attributes if present and collect as styles
                         let styles = [];
                         if (attributes) {
                             let current = '';
                             let inQuotes = false;
-                            
+
                             // Parse character by character to handle quotes correctly
                             for (let i = 0; i < attributes.length; i++) {
                                 const char = attributes[i];
-                                
+
                                 if (char === '"' || char === "'") {
                                     inQuotes = !inQuotes;
                                 } else if (char === ',' && !inQuotes) {
@@ -3979,7 +3985,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                                     current += char;
                                 }
                             }
-                            
+
                             // Add the last style if exists and replace = with :
                             if (current.trim()) {
                                 styles.push(current.trim().replace('=', ':'));
@@ -3996,10 +4002,10 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                     }
                 },
                 renderer(token) {
-                    const styleAttr = token.styles && token.styles.length > 0 
-                        ? ` style="${token.styles.join('; ')}"` 
+                    const styleAttr = token.styles && token.styles.length > 0
+                        ? ` style="${token.styles.join('; ')}"`
                         : '';
-                    
+
                     return `<img src="${token.src}" alt="${token.alt}"${styleAttr}>`;
                 }
             };
@@ -4192,7 +4198,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 },
                 renderer(token) {
                     return `<div class="header">
-                        <a class="header-linker no-print" onclick="copyLink(this, 'h${token.depth}')">link</a>
+                        <a class="header-linker no-print non-selectable" onclick="copyLink(this, 'h${token.depth}')">link</a>
                         <h${token.depth}>
                             ${token.text}
                         </h${token.depth}>
@@ -4229,7 +4235,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             const partialLink = window.location.href.split('#')[0];
             const headerId = linkHeader.closest('.header').querySelector(tagName).id;
             const link = partialLink + '#' + headerId
-            copyText(link, linkHeader);            
+            copyText(link, linkHeader);
         }
 
         async function loadFromSource() {
@@ -4398,7 +4404,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
 
             renderMathIn(section);
             renderMathIn(DOM.tocContent);
-            
+
             section.querySelectorAll(".math-jaxs").forEach((el) => MathJax.typeset([el]));
 
             section.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(observeHeader);
@@ -5143,9 +5149,15 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         }
 
         function showCopySuccess(button) {
+            // If animation is already running (button has 'copied' class), don't start a new one
+            if (button.classList.contains('copied')) {
+                return;
+            }
+
             const textContent = button.textContent;
             button.textContent = 'done';
             button.classList.add('copied');
+
             setTimeout(() => {
                 button.textContent = textContent;
                 button.classList.remove('copied');
@@ -5320,7 +5332,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         function showImagePopup(imageElement) {
             const imageContainer = document.createElement('div');
             imageContainer.className = 'image-popup-container';
-            
+
             const imageScrollContainer = document.createElement('div');
             imageScrollContainer.className = 'image-scroll-container non-selectable';
 
@@ -5328,12 +5340,12 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             image.src = imageElement.src;
             image.alt = imageElement.alt;
             image.className = 'popup-image';
-            
+
             // Add zoom and drag functionality
             let isZoomed = false;
             let isDragging = false;
             let startX, startY, translateX = 0, translateY = 0;
-            
+
             const scaleAdjustment = 2; // Define scale factor as a constant
             const toggleZoom = () => {
                 if (isZoomed) {
@@ -5347,32 +5359,32 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 }
                 isZoomed = !isZoomed;
             };
-            
+
             // Set initial cursor style and transition
             image.style.cursor = 'zoom-in';
             image.style.transition = 'transform 0.3s ease';
             image.draggable = false; // Prevent default drag behavior
-            
+
             // Add double-click event listener
             image.addEventListener('dblclick', toggleZoom);
             // Mouse drag events
             image.addEventListener('mousedown', (e) => {
                 if (!isZoomed) return;
-                
+
                 e.preventDefault(); // Prevent default drag behavior
                 isDragging = true;
                 startX = e.clientX - translateX;
                 startY = e.clientY - translateY;
                 image.style.transition = 'none'; // Disable transition during drag
             });
-            
+
             document.addEventListener('mousemove', (e) => {
                 if (!isDragging) return;
                 e.preventDefault();
 
                 translateX = e.clientX - startX;
                 translateY = e.clientY - startY;
-                
+
                 const containerRect = imageScrollContainer.getBoundingClientRect();
                 const imageWidth = image.width * scaleAdjustment;
                 const imageHeight = image.height * scaleAdjustment;
@@ -5385,12 +5397,12 @@ This tool allows you to view Markdown files directly in your browser. Here's how
 
                 image.style.transform = `scale(${scaleAdjustment}) translate(${translateX / scaleAdjustment}px, ${translateY / scaleAdjustment}px)`;
             });
-            
+
             document.addEventListener('mouseup', () => {
                 isDragging = false;
                 image.style.transition = 'transform 0.3s ease';
             });
-            
+
             // Touch drag events for mobile
             image.addEventListener('touchstart', (e) => {
                 if (!isZoomed) {
@@ -5404,20 +5416,20 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                     lastTap = currentTime;
                     return;
                 }
-                
+
                 isDragging = true;
                 startX = e.touches[0].clientX - translateX;
                 startY = e.touches[0].clientY - translateY;
                 image.style.transition = 'none';
             });
-            
+
             image.addEventListener('touchmove', (e) => {
                 if (!isDragging) return;
                 e.preventDefault();
 
                 translateX = e.touches[0].clientX - startX;
                 translateY = e.touches[0].clientY - startY;
-                
+
                 const containerRect = imageScrollContainer.getBoundingClientRect();
                 const imageWidth = image.width * scaleAdjustment;
                 const imageHeight = image.height * scaleAdjustment;
@@ -5430,24 +5442,24 @@ This tool allows you to view Markdown files directly in your browser. Here's how
 
                 image.style.transform = `scale(${scaleAdjustment}) translate(${translateX / scaleAdjustment}px, ${translateY / scaleAdjustment}px)`;
             });
-            
+
             image.addEventListener('touchend', () => {
                 isDragging = false;
                 image.style.transition = 'transform 0.3s ease';
             });
-            
+
             // Initialize lastTap for double-tap detection
             let lastTap = 0;
-            
+
             const caption = document.createElement('div');
             caption.className = 'image-caption';
             caption.textContent = imageElement.alt || 'Image';
-            
+
             imageScrollContainer.appendChild(image);
 
             imageContainer.appendChild(imageScrollContainer);
             imageContainer.appendChild(caption);
-            
+
             popupManager.create(imageContainer, {
                 customClass: 'image-popup',
                 closeOnBackdropClick: true,
@@ -5576,7 +5588,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             const sourceProvider = localStorage.getItem('mdv_source_provider') || 'github';
             const repoLink = localStorage.getItem('mdv_source') || 'newZeug/aud-summary';
             const mdvAutoLoad = localStorage.getItem('mdv_autoload');
-            const autoLoad = mdvAutoLoad ? mdvAutoLoad === 'true': true;
+            const autoLoad = mdvAutoLoad ? mdvAutoLoad === 'true' : true;
             const mdvTheme = localStorage.getItem('mdv_theme');
             const theme = mdvTheme ? mdvTheme === 'true' : window.matchMedia('(prefers-color-scheme: dark)').matches;
 
