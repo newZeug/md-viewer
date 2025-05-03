@@ -3193,7 +3193,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 return element;
             },
 
-            createButton(icon, onClick, className = 'move-button') {
+            createButton(icon, onClick, className = 'move-button', title = null) {
                 const button = this.createElement('button', className, icon);
                 if (onClick) {
                     if (typeof onClick === 'function') {
@@ -3204,6 +3204,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                         button.setAttribute('onclick', onClick);
                     }
                 }
+                if (title) button.title = title;
                 return button;
             },
 
@@ -3544,48 +3545,29 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 textSelectionMenu.className = 'text-selection-menu no-print';
 
                 // Bold button
-                const boldButton = document.createElement('button');
-                boldButton.innerHTML = 'format_bold';
-                boldButton.title = 'Make text bold';
-                boldButton.onclick = () => formatText('bold');
+                const boldButton = utils.createButton('format_bold', () => formatText('bold'), null, 'Make text bold');
 
                 // Italic button
-                const italicButton = document.createElement('button');
-                italicButton.innerHTML = 'format_italic';
-                italicButton.title = 'Make text italic';
-                italicButton.onclick = () => formatText('italic');
+                const italicButton = utils.createButton('format_italic', () => formatText('italic'), null, 'Make text italic');
 
                 // Underline button
-                const underlineButton = document.createElement('button');
-                underlineButton.innerHTML = 'format_underlined';
-                underlineButton.title = 'Underline text';
-                underlineButton.onclick = () => formatText('underline');
+                const underlineButton = utils.createButton('format_underlined', () => formatText('underline'), null, 'Underline text');
 
                 // Code button
-                const codeButton = document.createElement('button');
-                codeButton.innerHTML = 'code';
-                codeButton.title = 'Format as code';
-                codeButton.onclick = () => formatText('code');
+                const codeButton = utils.createButton('code', () => formatText('code'), null, 'Format as code');
 
                 // Original highlight button
-                const markButton = document.createElement('button');
-                markButton.innerHTML = 'format_color_text';
-                markButton.title = 'Highlight text';
-                markButton.onclick = () => formatText('highlight');
+                const markButton = utils.createButton('format_color_text', () => formatText('highlight'), null, 'Highlight text');
 
                 const wrapper = document.createElement('div');
                 wrapper.className = 'additional'
-                const chatButton = document.createElement('button');
-                chatButton.innerHTML = 'forum';
-                chatButton.className = 'chat-btn'
-                chatButton.title = 'Ask about this text';
-                chatButton.onclick = () => {
+                const chatButton = utils.createButton('forum', () => { 
                     const selection = window.getSelection();
                     updateChatContext(selection.toString());
                     showChat();
                     textSelectionMenu.classList.remove('visible');
                     selection.removeAllRanges();
-                };
+                }, 'chat-btn', 'Ask about this text');
                 wrapper.append(chatButton);
 
                 textSelectionMenu.append(boldButton, italicButton, underlineButton, codeButton, markButton, wrapper);
@@ -3944,7 +3926,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                             ${lineNumbersHtml}
                             <pre>${codeElement.outerHTML}</pre>
                         </div>
-                        <button class="copy-button no-print" title="Copy Code" onclick="copyCodeBlock(this.parentElement.querySelector('code'), this)">
+                        <button class="copy-button no-print non-selectable" title="Copy Code" onclick="copyCodeBlock(this.parentElement.querySelector('code'), this)">
                             content_copy
                         </button>
                     </div>`;
