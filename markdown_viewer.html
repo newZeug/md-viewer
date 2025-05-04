@@ -1841,7 +1841,8 @@
             flex-direction: column;
             align-items: center;
             max-height: 90vh;
-            max-width: 90vw;
+            max-width: 80vw;
+            min-width: 20vw;
         }
 
         .image-scroll-container {
@@ -1902,7 +1903,7 @@
             border-radius: 4px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
             display: none;
-            z-index: 1200;
+            z-index: 100;
             padding: 4px;
         }
 
@@ -3487,12 +3488,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                     selectionTimeout = setTimeout(() => {
                         const selection = window.getSelection();
                         if (selection.toString().trim() && !selection.isCollapsed) {
-                            const range = selection.getRangeAt(0);
-                            const rect = range.getBoundingClientRect();
-
-                            let textSelectionMenu = getSelectionMenu();
-                            textSelectionMenu.style.top = `${window.scrollY + rect.bottom + 10}px`;
-                            textSelectionMenu.style.left = `${window.scrollX + rect.left}px`;
+                            placeSelectionMenu();
                             textSelectionMenu.classList.add('visible');
                         } else {
                             const textSelectionMenu = document.querySelector('.text-selection-menu');
@@ -3536,6 +3532,46 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 DOM.dropzone.addEventListener('dragleave', handleDragLeave);
                 DOM.dropzone.addEventListener('drop', handleDrop);
             }
+        }
+
+        function placeSelectionMenu() {
+            const selection = window.getSelection();
+
+            const range = selection.getRangeAt(0);
+            const rect = range.getBoundingClientRect();
+            const textSelectionMenu = getSelectionMenu();
+            
+            // Position below the selection with some margin
+            textSelectionMenu.style.top = `${window.scrollY + rect.bottom + 10}px`;
+            
+            // Position horizontally at the selection's left edge
+            const position = window.scrollX + rect.left;
+            textSelectionMenu.style.right = 'unset';
+            textSelectionMenu.style.left = `${position}px`;
+            
+            // Make temporarily visible to calculate dimensions
+            textSelectionMenu.classList.add('visible');
+            
+            // Check for overflow and adjust if needed
+            const markdownContent = document.getElementById('markdownContent');
+            const mdContentRect = markdownContent.getBoundingClientRect();
+            const menuRect = textSelectionMenu.getBoundingClientRect();
+            
+            // Handle horizontal overflow
+            if (menuRect.right > mdContentRect.right) {
+                // Move menu to the left to fit within container
+                const adjustment = menuRect.right - mdContentRect.right + 10; // 10px margin
+                textSelectionMenu.style.left = `${position - adjustment}px`;
+            }
+            
+            // Handle vertical overflow (if menu goes below viewport)
+            const viewportHeight = window.innerHeight;
+            if (menuRect.bottom > viewportHeight) {
+                // Position menu above the selection instead
+                textSelectionMenu.style.top = `${window.scrollY + rect.top - menuRect.height - 10}px`;
+            }
+            
+            return textSelectionMenu;
         }
 
         function getSelectionMenu() {
@@ -4847,6 +4883,8 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 document.body.style.overflow = '';
                 resizeTriggered = false;
             }
+
+            placeSelectionMenu();
         }
 
         function populateFileToc(headerTree, section) {
