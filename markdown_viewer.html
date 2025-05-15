@@ -1940,6 +1940,29 @@
         /* Text formatting styles */
         .formatted-text {
             display: inline;
+            transition: background-color 0.2s ease;
+            border-radius: 2px;
+            padding: 0px 1px;
+        }
+        
+        .formatted-text:hover {
+            background-color: rgba(26, 115, 232, 0.1);
+        }
+        
+        html.dark-mode .formatted-text:hover {
+            background-color: rgba(100, 181, 246, 0.15);
+        }
+        
+        .formatted-text::before,
+        .formatted-text::after {
+            opacity: 0.4;
+            font-size: 0.85em;
+            transition: opacity 0.2s ease;
+        }
+        
+        .formatted-text:hover::before,
+        .formatted-text:hover::after {
+            opacity: 0.7;
         }
 
         .text-bold {
@@ -3489,7 +3512,8 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                         const selection = window.getSelection();
                         if (selection.toString().trim() && !selection.isCollapsed) {
                             placeSelectionMenu();
-                            textSelectionMenu.classList.add('visible');
+                            const textSelectionMenu = document.querySelector('.text-selection-menu');
+                            if (textSelectionMenu) textSelectionMenu.classList.add('visible');
                         } else {
                             const textSelectionMenu = document.querySelector('.text-selection-menu');
                             if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
@@ -3615,11 +3639,46 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         function surroundRangeWithTags(range, tagName, attributes = {}) {
             const fragment = range.extractContents();
             const wrapper = document.createElement(tagName);
+            
+            // Set attributes on the wrapper element
             for (const [key, value] of Object.entries(attributes)) {
                 wrapper.setAttribute(key, value);
             }
+            
+            // Check if the fragment already contains formatted text with the same class
+            const tempDiv = document.createElement('div');
+            tempDiv.appendChild(fragment.cloneNode(true));
+            const hasFormattedText = tempDiv.querySelector(`.${attributes.class.split(' ')[1]}`);
+            
+            if (hasFormattedText) {
+                // Return the original fragment to avoid double-wrapping
+                range.insertNode(fragment);
+                return null;
+            }
+            
             wrapper.appendChild(fragment);
             range.insertNode(wrapper);
+            
+            // Add click handler to show text selection menu when clicking on formatted text
+            wrapper.addEventListener('click', (e) => {
+                // Create a new range for the clicked element
+                const newRange = document.createRange();
+                newRange.selectNodeContents(wrapper);
+                
+                // Set the selection to this range
+                const selection = window.getSelection();
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                
+                // Show the text selection menu
+                placeSelectionMenu();
+                const textSelectionMenu = document.querySelector('.text-selection-menu');
+                if (textSelectionMenu) textSelectionMenu.classList.add('visible');
+                
+                // Prevent immediate hiding due to selectionchange event
+                e.stopPropagation();
+            });
+            
             return wrapper;
         }
 
@@ -3634,9 +3693,40 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 case 'code': className = 'text-code'; break;
                 case 'highlight': className = 'text-highlight'; break;
             }
+            
             try {
                 const range = selection.getRangeAt(0);
-                surroundRangeWithTags(range, 'span', { class: `formatted-text ${className}` });
+                
+                // Check for existing formatting in the range
+                const commonAncestor = range.commonAncestorContainer;
+                const containsFormatClass = findFormattedInRange(commonAncestor, range, className);
+                
+                if (containsFormatClass) {
+                    // Toggle the format off - remove this class
+                    containsFormatClass.classList.remove(className);
+                    
+                    // If no more format classes remain, unwrap the content
+                    if (!Array.from(containsFormatClass.classList).some(cls => cls.startsWith('text-'))) {
+                        // Create a document fragment to hold the content
+                        const fragment = document.createDocumentFragment();
+                        
+                        // Move all children to the fragment
+                        while (containsFormatClass.firstChild) {
+                            fragment.appendChild(containsFormatClass.firstChild);
+                        }
+                        
+                        // Insert the fragment before the parent node
+                        containsFormatClass.parentNode.insertBefore(fragment, containsFormatClass);
+                        // Now safe to remove the (now empty) node
+                        containsFormatClass.parentNode.removeChild(containsFormatClass);
+                    }
+                } else {
+                    // Apply the format
+                    const result = surroundRangeWithTags(range, 'span', { class: `formatted-text ${className}` });
+                    if (!result) {
+                        console.log('Text already has this formatting applied');
+                    }
+                }
             } catch (e) {
                 console.error(`Error formatting text as ${format}:`, e);
             }
@@ -3646,6 +3736,36 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
 
             selection.removeAllRanges();
+        }
+        
+        function findFormattedInRange(node, range, className) {
+            // Check if the node itself is a formatted element with the target class
+            if (node.nodeType === Node.ELEMENT_NODE && 
+                node.classList && 
+                node.classList.contains(className)) {
+                return node;
+            }
+            
+            // If this is a text node and fully contained in the range, check its parent
+            if (node.nodeType === Node.TEXT_NODE) {
+                const parent = node.parentNode;
+                if (parent.classList && 
+                    parent.classList.contains(className) &&
+                    range.intersectsNode(node)) {
+                    return parent;
+                }
+            }
+            
+            // Recursively check child nodes
+            if (node.hasChildNodes()) {
+                for (let i = 0; i < node.childNodes.length; i++) {
+                    const child = node.childNodes[i];
+                    const found = findFormattedInRange(child, range, className);
+                    if (found) return found;
+                }
+            }
+            
+            return null;
         }
 
         // Consolidated drag and drop handlers
