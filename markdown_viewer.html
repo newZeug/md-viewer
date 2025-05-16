@@ -1884,10 +1884,6 @@
             border-radius: 8px;
         }
 
-        html.dark-mode .image-popup .popup-content {
-            background: rgba(45, 45, 45, 0.9);
-        }
-
         .image-popup .popup-close-button {
             color: white;
             background: rgba(0, 0, 0, 0.5);
@@ -1952,10 +1948,6 @@
 
         .formatted-text:hover {
             background-color: rgba(26, 115, 232, 0.1);
-        }
-
-        html.dark-mode .formatted-text:hover {
-            background-color: rgba(100, 181, 246, 0.15);
         }
 
         .formatted-text::before,
@@ -2031,6 +2023,19 @@
                 --text-color: #e0e0e0;
                 --red-bg: #713535;
                 --red-color: #fdbebd;
+            }
+
+            hr {
+                background-color: #666;
+            }
+
+            .image-popup .popup-content {
+                background: rgba(45, 45, 45, 0.9);
+            }
+
+
+            .formatted-text:hover {
+                background-color: rgba(100, 181, 246, 0.15);
             }
 
             .text-selection-menu {
