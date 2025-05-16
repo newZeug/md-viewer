@@ -168,7 +168,7 @@
         }
 
         #markdownContent .header:hover .header-linker {
-        transition-delay: 200ms;
+            transition-delay: 200ms;
         }
 
         #markdownContent .header .header-linker.copied {
@@ -236,7 +236,7 @@
         }
 
         #markdownContent blockquote:hover {
-            transition-delay: 200ms; 
+            transition-delay: 200ms;
             transition: .2s;
             background: var(--secondary-bg-color);
         }
@@ -334,6 +334,11 @@
             align-items: center;
             justify-content: space-between;
             width: 100%;
+        }
+
+        hr {
+            margin: 1rem 0rem;
+            border-color: #ddd;
         }
 
         .file-name-content {
@@ -1926,7 +1931,8 @@
             font-size: 1rem;
         }
 
-        .text-selection-menu button:hover {
+        .text-selection-menu button:hover,
+        .text-selection-menu button.active {
             background: var(--highlight-bg);
             color: var(--highlight-color);
         }
@@ -1942,24 +1948,23 @@
             display: inline;
             transition: background-color 0.2s ease;
             border-radius: 2px;
-            padding: 0px 1px;
         }
-        
+
         .formatted-text:hover {
             background-color: rgba(26, 115, 232, 0.1);
         }
-        
+
         html.dark-mode .formatted-text:hover {
             background-color: rgba(100, 181, 246, 0.15);
         }
-        
+
         .formatted-text::before,
         .formatted-text::after {
             opacity: 0.4;
             font-size: 0.85em;
             transition: opacity 0.2s ease;
         }
-        
+
         .formatted-text:hover::before,
         .formatted-text:hover::after {
             opacity: 0.7;
@@ -2041,7 +2046,8 @@
                 border-color: var(--primary-bg-color);
             }
 
-            .text-selection-menu button:hover {
+            .text-selection-menu button:hover,
+            .text-selection-menu button.active {
                 background: var(--primary-bg-color);
             }
 
@@ -3210,15 +3216,16 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         let translations = TRANSLATIONS.en;
 
         const utils = {
-            createElement(tag, className, textContent = '') {
+            createElement(tag, className, textContent = '', id) {
                 const element = document.createElement(tag);
                 if (className) element.className = className;
                 if (textContent) element.textContent = textContent;
+                if (id) element.id = id;
                 return element;
             },
 
-            createButton(icon, onClick, className = 'move-button', title = null) {
-                const button = this.createElement('button', className, icon);
+            createButton(icon, onClick, className = 'move-button', title, id) {
+                const button = this.createElement('button', className, icon, id);
                 if (onClick) {
                     if (typeof onClick === 'function') {
                         const funcName = onClick.name || `btn_${Math.random().toString(36).substr(2, 9)}`;
@@ -3502,7 +3509,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
 
                 // Hide text selection menu if no text is selected
                 if (!selection.toString().trim()) {
-                    const textSelectionMenu = document.querySelector('.text-selection-menu');
+                    const textSelectionMenu = getSelectionMenu();
                     if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
                 }
 
@@ -3512,10 +3519,10 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                         const selection = window.getSelection();
                         if (selection.toString().trim() && !selection.isCollapsed) {
                             placeSelectionMenu();
-                            const textSelectionMenu = document.querySelector('.text-selection-menu');
+                            const textSelectionMenu = getSelectionMenu();
                             if (textSelectionMenu) textSelectionMenu.classList.add('visible');
                         } else {
-                            const textSelectionMenu = document.querySelector('.text-selection-menu');
+                            const textSelectionMenu = getSelectionMenu();
                             if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
                         }
                     }, 300);
@@ -3564,39 +3571,41 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             const range = selection.getRangeAt(0);
             const rect = range.getBoundingClientRect();
             const textSelectionMenu = getSelectionMenu();
-            
+
             // Position below the selection with some margin
             textSelectionMenu.style.top = `${window.scrollY + rect.bottom + 10}px`;
-            
+
             // Position horizontally at the selection's left edge
             const position = window.scrollX + rect.left;
             textSelectionMenu.style.right = 'unset';
             textSelectionMenu.style.left = `${position}px`;
-            
+
             // Make temporarily visible to calculate dimensions
             textSelectionMenu.classList.add('visible');
-            
+
             // Check for overflow and adjust if needed
             const markdownContent = document.getElementById('markdownContent');
             const mdContentRect = markdownContent.getBoundingClientRect();
             const menuRect = textSelectionMenu.getBoundingClientRect();
-            
+
             // Handle horizontal overflow
             if (menuRect.right > mdContentRect.right) {
                 // Move menu to the left to fit within container
                 const adjustment = menuRect.right - mdContentRect.right + 10; // 10px margin
                 textSelectionMenu.style.left = `${position - adjustment}px`;
             }
-            
+
             // Handle vertical overflow (if menu goes below viewport)
             const viewportHeight = window.innerHeight;
             if (menuRect.bottom > viewportHeight) {
                 // Position menu above the selection instead
                 textSelectionMenu.style.top = `${window.scrollY + rect.top - menuRect.height - 10}px`;
             }
-            
+
             return textSelectionMenu;
         }
+
+        let selectedElem;
 
         function getSelectionMenu() {
             let textSelectionMenu = document.querySelector('.text-selection-menu');
@@ -3605,33 +3614,45 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 textSelectionMenu.className = 'text-selection-menu no-print';
 
                 // Bold button
-                const boldButton = utils.createButton('format_bold', () => formatText('bold'), null, 'Make text bold');
+                const boldButton = utils.createButton('format_bold', () => formatText('bold'), null, 'Make text bold', 'text-bold');
 
                 // Italic button
-                const italicButton = utils.createButton('format_italic', () => formatText('italic'), null, 'Make text italic');
+                const italicButton = utils.createButton('format_italic', () => formatText('italic'), null, 'Make text italic', 'text-italic');
 
                 // Underline button
-                const underlineButton = utils.createButton('format_underlined', () => formatText('underline'), null, 'Underline text');
+                const underlineButton = utils.createButton('format_underlined', () => formatText('underline'), null, 'Underline text', 'text-underline');
 
                 // Code button
-                const codeButton = utils.createButton('code', () => formatText('code'), null, 'Format as code');
+                const codeButton = utils.createButton('code', () => formatText('code'), null, 'Format as code', 'text-code');
 
                 // Original highlight button
-                const markButton = utils.createButton('format_color_text', () => formatText('highlight'), null, 'Highlight text');
+                const markButton = utils.createButton('format_color_text', () => formatText('highlight'), null, 'Highlight text', 'text-highlight');
 
-                const wrapper = document.createElement('div');
-                wrapper.className = 'additional'
-                const chatButton = utils.createButton('forum', () => { 
+                const additionals = document.createElement('div');
+                additionals.className = 'additional'
+                const chatButton = utils.createButton('forum', () => {
                     const selection = window.getSelection();
                     updateChatContext(selection.toString());
                     showChat();
                     textSelectionMenu.classList.remove('visible');
                     selection.removeAllRanges();
                 }, 'chat-btn', 'Ask about this text');
-                wrapper.append(chatButton);
+                additionals.append(chatButton);
 
-                textSelectionMenu.append(boldButton, italicButton, underlineButton, codeButton, markButton, wrapper);
+                textSelectionMenu.append(boldButton, italicButton, underlineButton, codeButton, markButton, additionals);
                 document.body.appendChild(textSelectionMenu);
+            } else if (selectedElem) {
+                classList = ['text-bold', 'text-italic', 'text-underline', 'text-code', 'text-highlight']
+                classList.forEach((className) => {
+                    elem = textSelectionMenu.querySelector(`#${className}`);
+                    if (selectedElem.classList.contains(className)) {
+                        elem.classList.add('active');
+                    } else {
+                        elem.classList.remove('active');
+                    }
+                });
+            } else {
+                Array.from(textSelectionMenu.querySelectorAll('button')).forEach((elem) => elem.classList.remove('active'));
             }
             return textSelectionMenu;
         }
@@ -3639,51 +3660,34 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         function surroundRangeWithTags(range, tagName, attributes = {}) {
             const fragment = range.extractContents();
             const wrapper = document.createElement(tagName);
-            
+
             // Set attributes on the wrapper element
             for (const [key, value] of Object.entries(attributes)) {
                 wrapper.setAttribute(key, value);
             }
-            
-            // Check if the fragment already contains formatted text with the same class
-            const tempDiv = document.createElement('div');
-            tempDiv.appendChild(fragment.cloneNode(true));
-            const hasFormattedText = tempDiv.querySelector(`.${attributes.class.split(' ')[1]}`);
-            
-            if (hasFormattedText) {
-                // Return the original fragment to avoid double-wrapping
-                range.insertNode(fragment);
-                return null;
-            }
-            
+
             wrapper.appendChild(fragment);
             range.insertNode(wrapper);
-            
+
             // Add click handler to show text selection menu when clicking on formatted text
             wrapper.addEventListener('click', (e) => {
-                // Create a new range for the clicked element
-                const newRange = document.createRange();
-                newRange.selectNodeContents(wrapper);
-                
-                // Set the selection to this range
-                const selection = window.getSelection();
-                selection.removeAllRanges();
-                selection.addRange(newRange);
-                
+
                 // Show the text selection menu
+                selectedElem = wrapper;
                 placeSelectionMenu();
-                const textSelectionMenu = document.querySelector('.text-selection-menu');
+                const textSelectionMenu = getSelectionMenu();
                 if (textSelectionMenu) textSelectionMenu.classList.add('visible');
-                
+
                 // Prevent immediate hiding due to selectionchange event
                 e.stopPropagation();
             });
-            
+
             return wrapper;
         }
 
         function formatText(format) {
             const selection = window.getSelection();
+            const range = selection.getRangeAt(0);
 
             let className;
             switch (format) {
@@ -3693,69 +3697,55 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 case 'code': className = 'text-code'; break;
                 case 'highlight': className = 'text-highlight'; break;
             }
-            
-            try {
-                const range = selection.getRangeAt(0);
-                
-                // Check for existing formatting in the range
-                const commonAncestor = range.commonAncestorContainer;
-                const containsFormatClass = findFormattedInRange(commonAncestor, range, className);
-                
-                if (containsFormatClass) {
-                    // Toggle the format off - remove this class
-                    containsFormatClass.classList.remove(className);
-                    
-                    // If no more format classes remain, unwrap the content
-                    if (!Array.from(containsFormatClass.classList).some(cls => cls.startsWith('text-'))) {
-                        // Create a document fragment to hold the content
-                        const fragment = document.createDocumentFragment();
-                        
-                        // Move all children to the fragment
-                        while (containsFormatClass.firstChild) {
-                            fragment.appendChild(containsFormatClass.firstChild);
-                        }
-                        
-                        // Insert the fragment before the parent node
-                        containsFormatClass.parentNode.insertBefore(fragment, containsFormatClass);
-                        // Now safe to remove the (now empty) node
-                        containsFormatClass.parentNode.removeChild(containsFormatClass);
+
+            if (selectedElem && range.collapsed) {
+                selectedElem.classList.toggle(className);
+                if (!Array.from(selectedElem.classList).some(cls => cls.startsWith('text-'))) {
+                    const fragment = document.createDocumentFragment();
+
+                    // Move all children to the fragment
+                    while (selectedElem.firstChild) {
+                        fragment.appendChild(selectedElem.firstChild);
                     }
-                } else {
-                    // Apply the format
-                    const result = surroundRangeWithTags(range, 'span', { class: `formatted-text ${className}` });
-                    if (!result) {
-                        console.log('Text already has this formatting applied');
-                    }
+
+                    selectedElem.parentNode.insertBefore(fragment, selectedElem);
+                    // Now safe to remove the (now empty) node
+                    selectedElem.parentNode.removeChild(selectedElem);
                 }
-            } catch (e) {
-                console.error(`Error formatting text as ${format}:`, e);
+                selectedElem = null;
+
+            } else {
+                const result = surroundRangeWithTags(range, 'span', { class: `formatted-text ${className}` });
+                if (!result) {
+                    console.log('Text already has this formatting applied');
+                }
             }
 
             // Hide selection menu
-            const textSelectionMenu = document.querySelector('.text-selection-menu');
+            const textSelectionMenu = getSelectionMenu();
             if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
 
             selection.removeAllRanges();
         }
-        
+
         function findFormattedInRange(node, range, className) {
             // Check if the node itself is a formatted element with the target class
-            if (node.nodeType === Node.ELEMENT_NODE && 
-                node.classList && 
+            if (node.nodeType === Node.ELEMENT_NODE &&
+                node.classList &&
                 node.classList.contains(className)) {
                 return node;
             }
-            
+
             // If this is a text node and fully contained in the range, check its parent
             if (node.nodeType === Node.TEXT_NODE) {
                 const parent = node.parentNode;
-                if (parent.classList && 
+                if (parent.classList &&
                     parent.classList.contains(className) &&
                     range.intersectsNode(node)) {
                     return parent;
                 }
             }
-            
+
             // Recursively check child nodes
             if (node.hasChildNodes()) {
                 for (let i = 0; i < node.childNodes.length; i++) {
@@ -3764,7 +3754,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                     if (found) return found;
                 }
             }
-            
+
             return null;
         }
 
