@@ -765,13 +765,6 @@
             margin-bottom: 0.25rem;
         }
 
-        .text-highlight {
-            background: #fff6a7;
-            border-radius: 4px;
-            padding: 0;
-            margin: 0;
-        }
-
         .hljs {
             background: none !important;
             color: #383a42;
@@ -1005,6 +998,97 @@
 
         .toc-controls .edit-button.active .status-text {
             display: block;
+        }
+
+        /* Editor Styles */
+        .editor-container {
+            display: flex;
+            height: 60vh;
+            gap: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            background: var(--primary-bg-color);
+        }
+
+        .editor-pane {
+            display: flex;
+            flex-direction: column;
+            min-width: 200px;
+            background: var(--primary-bg-color);
+        }
+
+        .editor-pane-header {
+            padding: 0.75rem 1rem;
+            background: var(--secondary-bg-color);
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .editor-pane-header::before {
+            content: attr(data-icon);
+            font-family: 'Material Symbols Rounded';
+            font-size: 1rem;
+        }
+
+        #section-editor {
+            flex: 1;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            padding: 1rem;
+            border: none;
+            background: var(--chat-bg-color);
+            color: var(--text-color);
+            resize: none;
+            outline: none;
+            tab-size: 4;
+        }
+
+        #section-editor:focus {
+            background: var(--primary-bg-color);
+        }
+
+        #section-preview {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: var(--primary-bg-color);
+            border-left: 1px solid #e0e0e0;
+        }
+
+        .editor-splitter {
+            width: 4px;
+            background: var(--secondary-bg-color);
+            cursor: col-resize;
+            position: relative;
+            transition: background-color 0.2s ease;
+        }
+
+        .editor-splitter:hover {
+            background: var(--highlight-color);
+        }
+
+        .editor-splitter::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 2px;
+            height: 20px;
+            background: var(--text-color);
+            opacity: 0.3;
+            border-radius: 1px;
+        }
+
+        .editor-splitter:hover::after {
+            opacity: 1;
         }
 
         .toc-controls .control-button.mobile {
@@ -1962,56 +2046,6 @@
             opacity: 0.7;
         }
 
-        .text-bold {
-            font-weight: bold;
-        }
-
-        .text-italic {
-            font-style: italic;
-        }
-
-        .text-underline {
-            text-decoration: underline;
-        }
-
-        .text-code {
-            font-family: monospace;
-            background-color: var(--secondary-bg-color);
-            padding: 0.1em 0.3em;
-            border-radius: 3px;
-            font-size: 0.9em;
-        }
-
-        /* Allow combinations of text formats */
-        .text-bold.text-italic {
-            font-weight: bold;
-            font-style: italic;
-        }
-
-        .text-bold.text-underline {
-            font-weight: bold;
-            text-decoration: underline;
-        }
-
-        .text-italic.text-underline {
-            font-style: italic;
-            text-decoration: underline;
-        }
-
-        .text-bold.text-italic.text-underline {
-            font-weight: bold;
-            font-style: italic;
-            text-decoration: underline;
-        }
-
-        .text-code.text-bold {
-            font-weight: bold;
-        }
-
-        .text-code.text-italic {
-            font-style: italic;
-        }
-
         html.dark-mode {
             * {
                 --highlight-color: #619dcc;
@@ -2886,7 +2920,7 @@
                 <button class="settings-button control-button" onclick="toggleSettings()">settings</button>
             </div>
             <div class="topbar-right">
-                <div class="search-container">
+                <div class="search-container"> 
                     <div class="search-wrapper">
                         <input type="text" class="search-input translate" data-translate-key="searchPlaceholder"
                             placeholder="Search in documents..." onkeyup="handleSearch(event)">
@@ -3072,6 +3106,10 @@
                 },
             }
         };
+
+        let currentMarkdown = '';
+        let isEditMode = false;
+        let previewUpdateTimeout;
 
         const TRANSLATIONS = {
             de: {
@@ -3600,28 +3638,11 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             return textSelectionMenu;
         }
 
-        let selectedElem;
-
         function getSelectionMenu() {
             let textSelectionMenu = document.querySelector('.text-selection-menu');
             if (!textSelectionMenu) {
                 textSelectionMenu = document.createElement('div');
                 textSelectionMenu.className = 'text-selection-menu no-print';
-
-                // Bold button
-                const boldButton = utils.createButton('format_bold', () => formatText('bold'), null, 'Make text bold', 'text-bold');
-
-                // Italic button
-                const italicButton = utils.createButton('format_italic', () => formatText('italic'), null, 'Make text italic', 'text-italic');
-
-                // Underline button
-                const underlineButton = utils.createButton('format_underlined', () => formatText('underline'), null, 'Underline text', 'text-underline');
-
-                // Code button
-                const codeButton = utils.createButton('code', () => formatText('code'), null, 'Format as code', 'text-code');
-
-                // Original highlight button
-                const markButton = utils.createButton('format_color_text', () => formatText('highlight'), null, 'Highlight text', 'text-highlight');
 
                 const additionals = document.createElement('div');
                 additionals.className = 'additional'
@@ -3634,123 +3655,10 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                 }, 'chat-btn', 'Ask about this text');
                 additionals.append(chatButton);
 
-                textSelectionMenu.append(boldButton, italicButton, underlineButton, codeButton, markButton, additionals);
+                textSelectionMenu.append(additionals);
                 document.body.appendChild(textSelectionMenu);
-            } else if (selectedElem) {
-                classList = ['text-bold', 'text-italic', 'text-underline', 'text-code', 'text-highlight']
-                classList.forEach((className) => {
-                    elem = textSelectionMenu.querySelector(`#${className}`);
-                    if (selectedElem.classList.contains(className)) {
-                        elem.classList.add('active');
-                    } else {
-                        elem.classList.remove('active');
-                    }
-                });
-            } else {
-                Array.from(textSelectionMenu.querySelectorAll('button')).forEach((elem) => elem.classList.remove('active'));
             }
             return textSelectionMenu;
-        }
-
-        function surroundRangeWithTags(range, tagName, attributes = {}) {
-            const fragment = range.extractContents();
-            const wrapper = document.createElement(tagName);
-
-            // Set attributes on the wrapper element
-            for (const [key, value] of Object.entries(attributes)) {
-                wrapper.setAttribute(key, value);
-            }
-
-            wrapper.appendChild(fragment);
-            range.insertNode(wrapper);
-
-            // Add click handler to show text selection menu when clicking on formatted text
-            wrapper.addEventListener('click', (e) => {
-
-                // Show the text selection menu
-                selectedElem = wrapper;
-                placeSelectionMenu();
-                const textSelectionMenu = getSelectionMenu();
-                if (textSelectionMenu) textSelectionMenu.classList.add('visible');
-
-                // Prevent immediate hiding due to selectionchange event
-                e.stopPropagation();
-            });
-
-            return wrapper;
-        }
-
-        function formatText(format) {
-            const selection = window.getSelection();
-            const range = selection.getRangeAt(0);
-
-            let className;
-            switch (format) {
-                case 'bold': className = 'text-bold'; break;
-                case 'italic': className = 'text-italic'; break;
-                case 'underline': className = 'text-underline'; break;
-                case 'code': className = 'text-code'; break;
-                case 'highlight': className = 'text-highlight'; break;
-            }
-
-            if (selectedElem && range.collapsed) {
-                selectedElem.classList.toggle(className);
-                if (!Array.from(selectedElem.classList).some(cls => cls.startsWith('text-'))) {
-                    const fragment = document.createDocumentFragment();
-
-                    // Move all children to the fragment
-                    while (selectedElem.firstChild) {
-                        fragment.appendChild(selectedElem.firstChild);
-                    }
-
-                    selectedElem.parentNode.insertBefore(fragment, selectedElem);
-                    // Now safe to remove the (now empty) node
-                    selectedElem.parentNode.removeChild(selectedElem);
-                }
-                selectedElem = null;
-
-            } else {
-                const result = surroundRangeWithTags(range, 'span', { class: `formatted-text ${className}` });
-                if (!result) {
-                    console.log('Text already has this formatting applied');
-                }
-            }
-
-            // Hide selection menu
-            const textSelectionMenu = getSelectionMenu();
-            if (textSelectionMenu) textSelectionMenu.classList.remove('visible');
-
-            selection.removeAllRanges();
-        }
-
-        function findFormattedInRange(node, range, className) {
-            // Check if the node itself is a formatted element with the target class
-            if (node.nodeType === Node.ELEMENT_NODE &&
-                node.classList &&
-                node.classList.contains(className)) {
-                return node;
-            }
-
-            // If this is a text node and fully contained in the range, check its parent
-            if (node.nodeType === Node.TEXT_NODE) {
-                const parent = node.parentNode;
-                if (parent.classList &&
-                    parent.classList.contains(className) &&
-                    range.intersectsNode(node)) {
-                    return parent;
-                }
-            }
-
-            // Recursively check child nodes
-            if (node.hasChildNodes()) {
-                for (let i = 0; i < node.childNodes.length; i++) {
-                    const child = node.childNodes[i];
-                    const found = findFormattedInRange(child, range, className);
-                    if (found) return found;
-                }
-            }
-
-            return null;
         }
 
         // Consolidated drag and drop handlers
@@ -4320,10 +4228,11 @@ This tool allows you to view Markdown files directly in your browser. Here's how
                     return false;
                 },
                 renderer(token) {
+                    const parsedText = marked.parseInline(token.text);
                     return `<div class="header">
                         <a class="header-linker no-print non-selectable" onclick="copyLink(this, 'h${token.depth}')">link</a>
                         <h${token.depth}>
-                            ${token.text}
+                            ${parsedText}
                         </h${token.depth}>
                     </div>`;
                 }
@@ -4484,6 +4393,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         }
 
         function showPreview(markdownText, fileName = '') {
+            currentMarkdown = markdownText;
             if (DOM.mainView) {
                 DOM.mainView.classList.add('hidden');
             }
@@ -4504,6 +4414,8 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             const content = document.createElement('div');
             content.id = 'content';
             content.innerHTML = html;
+            // Store original markdown in the content div
+            content.dataset.originalMarkdown = markdownText;
 
             ensureHeaderIds(section);
 
@@ -4535,6 +4447,124 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             processDynamicTikz();
         }
 
+        function toggleSectionEdit(section) {
+            const contentDiv = section.querySelector('#content') || section.querySelector('.content');
+            const editButton = section.querySelector('.move-button[title="Edit this section"]');
+            
+            if (!contentDiv || !editButton) return;
+
+            const isInEditMode = contentDiv.querySelector('#section-editor');
+
+            if (isInEditMode) {
+                // Switch back to view mode
+                const textarea = contentDiv.querySelector('#section-editor');
+                if (textarea) {
+                    const markdownText = textarea.value;
+                    const html = renderMarkdown(markdownText);
+                    contentDiv.innerHTML = html;
+                    // Update stored original markdown
+                    contentDiv.dataset.originalMarkdown = markdownText;
+                    
+                    // Ensure header IDs are updated for the entire section
+                    const section = contentDiv.closest('.markdown-section');
+                    ensureHeaderIds(section);
+                    
+                    // Re-render math and other components
+                    renderMathIn(contentDiv);
+                    contentDiv.querySelectorAll(".math-jaxs").forEach((el) => MathJax.typeset([el]));
+                    contentDiv.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(observeHeader);
+                    
+                    // Rebuild TOC to reflect changes
+                    buildTOC();
+                }
+                editButton.textContent = 'edit';
+            } else {
+                // Switch to edit mode
+                // Get original markdown from stored data
+                const originalMarkdown = contentDiv.dataset.originalMarkdown || '';
+                
+                contentDiv.innerHTML = `
+                    <div class="editor-container" id="editor-container">
+                        <div class="editor-pane" id="editor-pane" style="flex: 1;">
+                            <div class="editor-pane-header" data-icon="edit_note">Markdown Editor</div>
+                            <textarea id="section-editor">${originalMarkdown}</textarea>
+                        </div>
+                        <div class="editor-splitter" id="editor-splitter"></div>
+                        <div class="editor-pane" id="preview-pane" style="flex: 1;">
+                            <div class="editor-pane-header" data-icon="preview">Live Preview</div>
+                            <div id="section-preview"></div>
+                        </div>
+                    </div>
+                `;
+                
+                const textarea = contentDiv.querySelector('#section-editor');
+                const splitter = contentDiv.querySelector('#editor-splitter');
+                const editorPane = contentDiv.querySelector('#editor-pane');
+                const previewPane = contentDiv.querySelector('#preview-pane');
+                const container = contentDiv.querySelector('#editor-container');
+                
+                // Add splitter functionality
+                let isDragging = false;
+                let startX = 0;
+                let startEditorWidth = 0;
+                let startPreviewWidth = 0;
+                
+                splitter.addEventListener('mousedown', (e) => {
+                    isDragging = true;
+                    startX = e.clientX;
+                    startEditorWidth = editorPane.offsetWidth;
+                    startPreviewWidth = previewPane.offsetWidth;
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                });
+                
+                document.addEventListener('mousemove', (e) => {
+                    if (!isDragging) return;
+                    
+                    const deltaX = e.clientX - startX;
+                    const containerWidth = container.offsetWidth - 4; // subtract splitter width
+                    const newEditorWidth = startEditorWidth + deltaX;
+                    const newPreviewWidth = startPreviewWidth - deltaX;
+                    
+                    // Ensure minimum widths
+                    if (newEditorWidth >= 200 && newPreviewWidth >= 200) {
+                        const editorFlex = newEditorWidth / containerWidth;
+                        const previewFlex = newPreviewWidth / containerWidth;
+                        
+                        editorPane.style.flex = editorFlex;
+                        previewPane.style.flex = previewFlex;
+                    }
+                });
+                
+                document.addEventListener('mouseup', () => {
+                    if (isDragging) {
+                        isDragging = false;
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                    }
+                });
+                
+                textarea.addEventListener('input', () => updateSectionPreview(contentDiv));
+                textarea.focus();
+                updateSectionPreview(contentDiv);
+                editButton.textContent = 'visibility';
+            }
+        }
+
+        function updateSectionPreview(section) {
+            const textarea = section.querySelector('#section-editor');
+            const preview = section.querySelector('#section-preview');
+            
+            if (textarea && preview) {
+                const markdownText = textarea.value;
+                const html = renderMarkdown(markdownText);
+                preview.innerHTML = html;
+                renderMathIn(preview);
+                preview.querySelectorAll(".math-jaxs").forEach((el) => MathJax.typeset([el]));
+            }
+        }
+
         function createFileNameDiv(fileName, section) {
             const fileNameDiv = document.createElement('div');
             fileNameDiv.className = 'file-name non-selectable';
@@ -4558,7 +4588,13 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             breadcrumbPath.className = 'breadcrumb-path non-selectable no-print';
             fileNameInfo.append(fileNameText, breadcrumbPath);
 
-            fileNameHeader.append(fileNameInfo);
+            const editButton = document.createElement('button');
+            editButton.className = 'move-button';
+            editButton.textContent = 'edit';
+            editButton.title = 'Edit this section';
+            editButton.onclick = () => toggleSectionEdit(section);
+
+            fileNameHeader.append(fileNameInfo, editButton);
 
             const fileNameContent = document.createElement('div');
             fileNameContent.className = 'file-name-content no-print';
@@ -4680,7 +4716,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
         function createFileHeader(fileName, fileNameId) {
             const fileHeaderContainer = utils.createElement('div', 'toc-file');
 
-            const dragHandle = utils.createButton('drag_indicator', null, 'move-button edit-menu hidden');
+            const dragHandle = utils.createButton('drag_indicator', null, 'move-button edit-menu hidden no-print');
             dragHandle.draggable = true;
             dragHandle.style.cursor = 'grab';
 
