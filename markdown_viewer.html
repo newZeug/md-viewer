@@ -2698,6 +2698,8 @@
                 border-bottom: 1px solid #ccc !important;
                 margin-bottom: 1rem !important;
                 page-break-after: avoid !important;
+                width: 100%;
+                align-items: center;
             }
 
             /* Ensure headers don't break across pages */
@@ -2826,9 +2828,14 @@
                 padding: 3px 6px !important;
             }
 
-            /* File name header */
             .file-name-text {
-                font-size: 9pt !important;
+                font-size: 20pt !important;
+                width: 100%;
+            }
+
+            a[href^="mailto:"]::after {
+                content: "" !important;
+                display: none !important;
             }
 
             /* Adjust list spacing */
@@ -3432,7 +3439,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             document.querySelectorAll('.translate').forEach(translate);
             popupManager.translate();
 
-            setTimestamp(lang);
+            // setTimestamp(lang);
 
             document.documentElement.lang = lang;
         }
@@ -4428,7 +4435,7 @@ This tool allows you to view Markdown files directly in your browser. Here's how
             if (DOM.mainView) DOM.mainView.classList.add('hidden');
             DOM.previewView.classList.remove('hidden');
 
-            setTimestamp();
+            // setTimestamp();
 
             buildTOC();
 
